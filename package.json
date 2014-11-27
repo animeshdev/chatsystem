@@ -1,0 +1,12 @@
+{
+ 
+  "dependencies": {
+    "express": "",
+    "socket.io": "",
+    "underscore": "",
+    "redis": "",
+    "validator": "",
+    "body-parser"    : "*",
+    "socket.io-redis" : ""
+  }
+}
