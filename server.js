@@ -70,7 +70,7 @@ var sanitizeMessage = function(req, res, next) {
 
 // Send a message to all active rooms
 var sendBroadcast = function(text) {
-    _.each(_.keys(io.sockets.rooms), function(room) {
+    _.each(_.keys(socket.room), function(room) {
         room = room.substr(1); // Forward slash before room name (socket.io)
         // Don't send messages to default "" room 
         if (room) {
@@ -103,9 +103,11 @@ app.use(bodyParser.json())
 
 io.sockets.on('connection', function(socket) {
 
+    
+
     // Welcome message on connection
     socket.emit('connected', 'Welcome to the chat server');
-    logger.emit('newEvent', 'userConnected', {'socket':socket.id});
+    //logger.emit('newEvent', 'userConnected', {'socket':socket.id});
 
     // Store user data in db
     db.hset([socket.id, 'connectionDate', new Date()], redis.print);
@@ -114,7 +116,14 @@ io.sockets.on('connection', function(socket) {
 
     // Join user to 'MainRoom'
     socket.join(conf.mainroom);
+
+    //console.log( io.sockets.adapter.rooms );
+
+    console.log( io.sockets.adapter );
+
     logger.emit('newEvent', 'userJoinsRoom', {'socket':socket.id, 'room':conf.mainroom});
+
+    console.log( socket.room );
     // Confirm subscription to user
     socket.emit('subscriptionConfirmed', {'room':conf.mainroom});
     // Notify subscription to all users in room
@@ -166,7 +175,7 @@ io.sockets.on('connection', function(socket) {
 
     // User wants to know what rooms he has joined
     socket.on('getRooms', function(data) {
-        socket.emit('roomsReceived', io.sockets.rooms[socket.id]);
+        socket.emit('roomsReceived', socket.rooms);
         logger.emit('newEvent', 'userGetsRooms', {'socket':socket.id});
     });
 
@@ -195,7 +204,7 @@ io.sockets.on('connection', function(socket) {
             logger.emit('newEvent', 'userSetsNickname', {'socket':socket.id, 'oldUsername':username, 'newUsername':data.username});
 
             // Notify all users who belong to the same rooms that this one
-            _.each(_.keys(io.sockets.rooms[socket.id]), function(room) {
+            _.each(_.keys(io.sockets.roomClients[socket.id]), function(room) {
                 room = room.substr(1); // Forward slash before room name (socket.io)
                 if (room) {
                     var info = {'room':room, 'oldUsername':username, 'newUsername':data.username, 'id':socket.id};
@@ -207,11 +216,15 @@ io.sockets.on('connection', function(socket) {
 
     // New message sent to group
     socket.on('newMessage', function(data) {
+
+        console.log( data);
         db.hgetall(socket.id, function(err, obj) {
             if (err) return logger.emit('newEvent', 'error', err);
 
             // Check if user is subscribed to room before sending his message
-            if (_.has(io.sockets.rooms[socket.id], "/"+data.room)) {
+            //if (_.has(io.sockets.roomClients[socket.id], "/"+data.room)) {
+
+            if (_.has( socket.rooms, "/"+data.room)) {    
                 var message = {'room':data.room, 'username':obj.username, 'msg':data.msg, 'date':new Date()};
                 // Send message to room
                 io.sockets.in(data.room).emit('newMessage', message);
@@ -224,7 +237,9 @@ io.sockets.on('connection', function(socket) {
     socket.on('disconnect', function() {
     
         // Get current rooms of user
-        var rooms = _.clone(io.sockets.rooms[socket.id]);
+        //var rooms = _.clone(io.sockets.roomClients[socket.id]);
+
+        var rooms = socket.rooms;
         
         // Get user info from db
         db.hgetall(socket.id, function(err, obj) {

@@ -75,7 +75,7 @@ angular.module('myApps', ['ngResource','ngRoute'])
     $scope.users = data.users;
   });
 
-  socket.on('send:message', function (message) {
+  socket.on('newMessage', function (message) {
     $scope.messages.push(message);
   });
 
@@ -147,8 +147,9 @@ angular.module('myApps', ['ngResource','ngRoute'])
   $scope.messages = [];
 
   $scope.sendMessage = function () {
-    socket.emit('send:message', {
-      message: $scope.message
+    socket.emit('newMessage', {
+      msg: $scope.message,
+      room: 'MainRoom'
     });
 
     // add the message to our model locally
