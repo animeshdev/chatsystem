@@ -186,30 +186,31 @@ io.sockets.on('connection', function(socket) {
     // Get users in given room
     socket.on('getUsersInRoom', function(data) {
         var usersInRoom = [];
-        var socketsInRoom = io.sockets.clients(data.room);
+        var socketsInRoom = _.keys ( io.sockets.adapter.rooms[data.room] );
+
+
+        console.log( socketsInRoom );
+
         for (var i=0; i<socketsInRoom.length; i++) {
-            db.hgetall(socketsInRoom[i].id, function(err, obj) {
+            db.hgetall(socketsInRoom[i], function(err, obj) {
+
+                console.log( obj );
                 usersInRoom.push({'room':data.room, 'username':obj.username, 'id':obj.socketID});
                 // When we've finished with the last one, notify user
                 if (usersInRoom.length == socketsInRoom.length) {
-                    socket.emit('usersInRoom', {'users':usersInRoom});
+
+                    usersInRoom.push({'room':data.room, 'username':'chatroom', 'id':''});
+                    io.sockets.in(data.room).emit('usersInRoom', {'users':usersInRoom});
                 }
             });
-        } 
+        }
+
+        console.log( usersInRoom );
+
     });
 
     // User wants to change his nickname
     socket.on('setNickname', function(data) {
-
-
-        console.log( socket.id );    
-        console.log( socket.rooms );
-
-        //var room_info = io.sockets.adapter.rooms;
-
-        //console.log( room_info );
-
-
 
         //Get user info from db
         db.hget([socket.id, 'username'], function(err, username) {
@@ -240,19 +241,18 @@ io.sockets.on('connection', function(socket) {
     // New message sent to group
     socket.on('newMessage', function(data) {
 
-        console.log( data);
         db.hgetall(socket.id, function(err, obj) {
             if (err) return logger.emit('newEvent', 'error', err);
 
             // Check if user is subscribed to room before sending his message
             //if (_.has(io.sockets.roomClients[socket.id], "/"+data.room)) {
 
-            if (_.has( socket.rooms, data.room)) {    
-                var message = {'room':data.room, 'username':obj.username, 'msg':data.msg, 'date':new Date()};
+            if (_.contains( socket.rooms, data.room)) {    
+                var message = {'room':data.room, 'username':obj.username, 'text':data.msg, 'date':new Date()};
                 // Send message to room
                 io.sockets.in(data.room).emit('newMessage', message);
                 logger.emit('newEvent', 'newMessage', message);
-            }
+            } 
         });
     });
 
@@ -262,7 +262,7 @@ io.sockets.on('connection', function(socket) {
         // Get current rooms of user
         //var rooms = _.clone(io.sockets.roomClients[socket.id]);
 
-        var rooms = socket.rooms;
+        var rooms = io.sockets.adapter.rooms ;
         
         // Get user info from db
         db.hgetall(socket.id, function(err, obj) {
@@ -271,9 +271,10 @@ io.sockets.on('connection', function(socket) {
 
             // Notify all users who belong to the same rooms that this one
             _.each(_.keys(rooms), function(room) {
-                room = room.substr(1); // Forward slash before room name (socket.io)
+                //room = room.substr(1); // Forward slash before room name (socket.io)
                 if (room) {
-                    var message = {'room':room, 'username':obj.username, 'msg':'----- Left the room -----', 'id':obj.socketID};
+                    console.log('inside');
+                    var message = {'room':room, 'username':obj.username, 'text':'----- Left the room -----', 'id':obj.socketID};
                     io.sockets.in(room).emit('userLeavesRoom', message);
                 }
             });

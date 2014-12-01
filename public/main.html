@@ -37,9 +37,9 @@
     </div>
   </div>
 
-  <div class="col"><h3>Rooms</h3>
+  <div class="col"><h3>Users</h3>
     <div class="overflow">
-      <p ng-repeat='room in rooms'>{{room}}</p>
+      <p ng-repeat='user in users'>{{user.username}}</p>
     </div>
   </div>
 
@@ -78,6 +78,23 @@ angular.module('myApps', ['ngResource','ngRoute'])
 
   socket.on('connected', function (message) {
    $scope.messages.push(message);
+
+   socket.emit('getUsersInRoom', {
+      room: 'MainRoom'
+    });
+
+  });
+
+  socket.on('usersInRoom', function (data) {
+
+    
+
+    //data.users.push({username:'chatroom'});  
+
+    //console.log( data.users );
+
+    $scope.users = data.users;
+
   });
 
 
@@ -89,12 +106,12 @@ angular.module('myApps', ['ngResource','ngRoute'])
   
 
   });
-
-
-
-  
+ 
   socket.on('newMessage', function (message) {
+
     $scope.messages.push(message);
+
+
   });
 
   socket.on('userNicknameUpdated', function (data) {
@@ -114,22 +131,11 @@ angular.module('myApps', ['ngResource','ngRoute'])
   });
 
   // add a message to the conversation when a user disconnects or leaves the room
-  socket.on('user:left', function (data) {
+  socket.on('userLeavesRoom', function (data) {
     $scope.messages.push({
       username: 'chatroom',
-      text: 'User ' + data.name + ' has left.'
+      text: data.username+ ' ' + data.text
     });
-
-
-    // var i, user;
-    // for (i = 0; i < $scope.users.length; i++) {
-    //   user = $scope.users[i];
-    //   if (user === data.name) {
-    //     $scope.users.splice(i, 1);
-    //     break;
-    //   }
-    // }
-
 
   });
 
@@ -182,13 +188,13 @@ angular.module('myApps', ['ngResource','ngRoute'])
     });
 
     // add the message to our model locally
-    $scope.messages.push({
-      username: $scope.name,
-      text: $scope.message
-    });
+    // $scope.messages.push({
+    //   username: $scope.username,
+    //   text: $scope.message
+    // });
 
     // clear message box
-    $scope.message = '';
+    //$scope.message = '';
   };
 })
 
