@@ -124,15 +124,14 @@ io.sockets.on('connection', function(socket) {
 
     //console.log( io.sockets.adapter.rooms );
 
-    console.log( io.sockets.adapter );
-
     logger.emit('newEvent', 'userJoinsRoom', {'socket':socket.id, 'room':conf.mainroom});
 
-    console.log( socket.room );
     // Confirm subscription to user
     socket.emit('subscriptionConfirmed', {'room':conf.mainroom});
+
+    var message = {text:'----- anonymous Has Joined the room -----','username':'chatroom'}
     // Notify subscription to all users in room
-    var data = {'room':conf.mainroom, 'username':'anonymous', 'msg':'----- Joined the room -----', 'id':socket.id};
+    var data = {'room':conf.mainroom, 'username':'anonymous', 'msg': message, 'id':socket.id};
     io.sockets.in(conf.mainroom).emit('userJoinsRoom', data);
 
     // User wants to subscribe to [data.rooms]
@@ -224,6 +223,9 @@ io.sockets.on('connection', function(socket) {
             // Notify all users who belong to the same rooms that this one
             _.each(socket.rooms, function(room) {
                 //room = room.substr(1); // Forward slash before room name (socket.io)
+
+                console.log('list:' + room);
+
                 if (room && room != socket.id) {
                     var info = {'room':room, 'oldUsername':username, 'newUsername':data.username, 'id':socket.id};
                     io.sockets.in(room).emit('userNicknameUpdated', info);
@@ -245,7 +247,7 @@ io.sockets.on('connection', function(socket) {
             // Check if user is subscribed to room before sending his message
             //if (_.has(io.sockets.roomClients[socket.id], "/"+data.room)) {
 
-            if (_.has( socket.rooms, "/"+data.room)) {    
+            if (_.has( socket.rooms, data.room)) {    
                 var message = {'room':data.room, 'username':obj.username, 'msg':data.msg, 'date':new Date()};
                 // Send message to room
                 io.sockets.in(data.room).emit('newMessage', message);

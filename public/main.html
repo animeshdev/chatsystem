@@ -36,9 +36,10 @@
       <p ng-repeat='message in messages'>{{message.username}}: {{message.text}}</p>
     </div>
   </div>
-  <div class="col"><h3>Users</h3>
+
+  <div class="col"><h3>Rooms</h3>
     <div class="overflow">
-      <p ng-repeat='user in users'>{{user}}</p>
+      <p ng-repeat='room in rooms'>{{room}}</p>
     </div>
   </div>
 
@@ -56,7 +57,7 @@
   <div class="clr">
 
     <h3>Change your name</h3>
-    <p>Your current user name is {{name}}</p>
+    <p>Your current user name is {{username}}</p>
     <form ng-submit='changeName()'>
       <label for="">New Name</label>
       <input size='60', ng-model='newName'>
@@ -79,6 +80,18 @@ angular.module('myApps', ['ngResource','ngRoute'])
    $scope.messages.push(message);
   });
 
+
+   socket.on('userJoinsRoom', function (data) {
+
+    $scope.username = data.username;
+
+   $scope.messages.push(data.msg);
+  
+
+  });
+
+
+
   
   socket.on('newMessage', function (message) {
     $scope.messages.push(message);
@@ -86,11 +99,15 @@ angular.module('myApps', ['ngResource','ngRoute'])
 
   socket.on('userNicknameUpdated', function (data) {
     changeName(data.oldUsername, data.newUsername);
+
+        //changeName($scope.username, $scope.newName);
+        $scope.username = $scope.newName;
+        $scope.newName = '';
   });
 
   socket.on('user:join', function (data) {
     $scope.messages.push({
-      user: 'chatroom',
+      username: 'chatroom',
       text: 'User ' + data.name + ' has joined.'
     });
     $scope.users.push(data.name);
@@ -99,17 +116,21 @@ angular.module('myApps', ['ngResource','ngRoute'])
   // add a message to the conversation when a user disconnects or leaves the room
   socket.on('user:left', function (data) {
     $scope.messages.push({
-      user: 'chatroom',
+      username: 'chatroom',
       text: 'User ' + data.name + ' has left.'
     });
-    var i, user;
-    for (i = 0; i < $scope.users.length; i++) {
-      user = $scope.users[i];
-      if (user === data.name) {
-        $scope.users.splice(i, 1);
-        break;
-      }
-    }
+
+
+    // var i, user;
+    // for (i = 0; i < $scope.users.length; i++) {
+    //   user = $scope.users[i];
+    //   if (user === data.name) {
+    //     $scope.users.splice(i, 1);
+    //     break;
+    //   }
+    // }
+
+
   });
 
   // Private helpers
@@ -117,15 +138,15 @@ angular.module('myApps', ['ngResource','ngRoute'])
 
   var changeName = function (oldName, newName) {
     // rename user in list of users
-    var i;
-    for (i = 0; i < $scope.users.length; i++) {
-      if ($scope.users[i] === oldName) {
-        $scope.users[i] = newName;
-      }
-    }
+    // var i;
+    // for (i = 0; i < $scope.users.length; i++) {
+    //   if ($scope.users[i] === oldName) {
+    //     $scope.users[i] = newName;
+    //   }
+    // }
 
     $scope.messages.push({
-      user: 'chatroom',
+      username: 'chatroom',
       text: 'User ' + oldName + ' is now known as ' + newName + '.'
     });
   }
@@ -140,10 +161,15 @@ angular.module('myApps', ['ngResource','ngRoute'])
       if (!result) {
         alert('There was an error changing your name');
       } else {
-        changeName($scope.name, $scope.newName);
-        $scope.name = $scope.newName;
+
+        changeName($scope.username, $scope.newName);
+        $scope.username = $scope.newName;
         $scope.newName = '';
+
+
       }
+
+
     });
   };
 
@@ -157,7 +183,7 @@ angular.module('myApps', ['ngResource','ngRoute'])
 
     // add the message to our model locally
     $scope.messages.push({
-      user: $scope.name,
+      username: $scope.name,
       text: $scope.message
     });
 
