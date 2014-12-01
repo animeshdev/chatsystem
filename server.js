@@ -106,13 +106,18 @@ io.sockets.on('connection', function(socket) {
     
 
     // Welcome message on connection
-    socket.emit('connected', 'Welcome to the chat server');
+    socket.emit('connected', {text:'Welcome to the chat server','username':'chatroom'});
     //logger.emit('newEvent', 'userConnected', {'socket':socket.id});
 
     // Store user data in db
     db.hset([socket.id, 'connectionDate', new Date()], redis.print);
     db.hset([socket.id, 'socketID', socket.id], redis.print);
     db.hset([socket.id, 'username', 'anonymous'], redis.print);
+
+    db.hget([socket.id, 'username'], function(err, username) {
+
+        console.log(username);
+    });
 
     // Join user to 'MainRoom'
     socket.join(conf.mainroom);
@@ -196,22 +201,38 @@ io.sockets.on('connection', function(socket) {
 
     // User wants to change his nickname
     socket.on('setNickname', function(data) {
-        // Get user info from db
+
+
+        console.log( socket.id );    
+        console.log( socket.rooms );
+
+        //var room_info = io.sockets.adapter.rooms;
+
+        //console.log( room_info );
+
+
+
+        //Get user info from db
         db.hget([socket.id, 'username'], function(err, username) {
 
             // Store user data in db
             db.hset([socket.id, 'username', data.username], redis.print);
             logger.emit('newEvent', 'userSetsNickname', {'socket':socket.id, 'oldUsername':username, 'newUsername':data.username});
 
+            //io.sockets.adapter 
+
             // Notify all users who belong to the same rooms that this one
-            _.each(_.keys(io.sockets.roomClients[socket.id]), function(room) {
-                room = room.substr(1); // Forward slash before room name (socket.io)
-                if (room) {
+            _.each(socket.rooms, function(room) {
+                //room = room.substr(1); // Forward slash before room name (socket.io)
+                if (room && room != socket.id) {
                     var info = {'room':room, 'oldUsername':username, 'newUsername':data.username, 'id':socket.id};
                     io.sockets.in(room).emit('userNicknameUpdated', info);
                 }
             });
         });
+
+
+
     });
 
     // New message sent to group
