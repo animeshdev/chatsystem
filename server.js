@@ -247,6 +247,8 @@ io.sockets.on('connection', function(socket) {
             // Check if user is subscribed to room before sending his message
             //if (_.has(io.sockets.roomClients[socket.id], "/"+data.room)) {
 
+            console.log( data );    
+
             if (_.contains( socket.rooms, data.room)) {    
                 var message = {'room':data.room, 'username':obj.username, 'text':data.msg, 'date':new Date()};
                 // Send message to room
