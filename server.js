@@ -4,7 +4,7 @@ var conf = {
     dbPort: 6379,
     dbHost: '127.0.0.1',
     dbOptions: {},
-    mainroom: 'MainRoom'
+    mainroom: 'Main'
 };
 
 // External dependencies
@@ -129,9 +129,9 @@ io.sockets.on('connection', function(socket) {
     // Confirm subscription to user
     socket.emit('subscriptionConfirmed', {'room':conf.mainroom});
 
-    var message = {text:'----- anonymous Has Joined the room -----','username':'chatroom'}
+    //var message = {text:'----- anonymous Has Joined the room -----','username':'chatroom'}
     // Notify subscription to all users in room
-    var data = {'room':conf.mainroom, 'username':'anonymous', 'msg': message, 'id':socket.id};
+    var data = {'room':conf.mainroom, 'username':'chatroom', 'text':'----- anonymous Has Joined the room -----', 'id':socket.id};
     io.sockets.in(conf.mainroom).emit('userJoinsRoom', data);
 
     // User wants to subscribe to [data.rooms]
@@ -149,7 +149,7 @@ io.sockets.on('connection', function(socket) {
                 socket.emit('subscriptionConfirmed', {'room': room});
         
                 // Notify subscription to all users in room
-                var message = {'room':room, 'username':username, 'msg':'----- Joined the room -----', 'id':socket.id};
+                var message = {'room':room, 'username':username, 'text':'----- Joined the room -----', 'id':socket.id};
                 io.sockets.in(room).emit('userJoinsRoom', message);
             });
         });
@@ -170,7 +170,7 @@ io.sockets.on('connection', function(socket) {
                     socket.emit('unsubscriptionConfirmed', {'room': room});
         
                     // Notify unsubscription to all users in room
-                    var message = {'room':room, 'username':username, 'msg':'----- Left the room -----', 'id': socket.id};
+                    var message = {'room':room, 'username':username, 'text':'----- Left the room -----', 'id': socket.id};
                     io.sockets.in(room).emit('userLeavesRoom', message);
                 }
             });
@@ -189,23 +189,23 @@ io.sockets.on('connection', function(socket) {
         var socketsInRoom = _.keys ( io.sockets.adapter.rooms[data.room] );
 
 
-        console.log( socketsInRoom );
+        //console.log( socketsInRoom );
 
         for (var i=0; i<socketsInRoom.length; i++) {
             db.hgetall(socketsInRoom[i], function(err, obj) {
 
                 console.log( obj );
-                usersInRoom.push({'room':data.room, 'username':obj.username, 'id':obj.socketID});
+                usersInRoom.push({ 'username':obj.username, 'id':obj.socketID });
                 // When we've finished with the last one, notify user
                 if (usersInRoom.length == socketsInRoom.length) {
 
-                    usersInRoom.push({'room':data.room, 'username':'chatroom', 'id':''});
-                    io.sockets.in(data.room).emit('usersInRoom', {'users':usersInRoom});
+                    usersInRoom.push({'username':'chatroom', 'id':''});
+                    io.sockets.in(data.room).emit('usersInRoom', {'users':usersInRoom,'room':data.room});
                 }
             });
         }
 
-        console.log( usersInRoom );
+        //console.log( usersInRoom );
 
     });
 
@@ -249,7 +249,9 @@ io.sockets.on('connection', function(socket) {
 
             console.log( data );    
 
-            if (_.contains( socket.rooms, data.room)) {    
+            if (_.contains( socket.rooms, data.room)) {
+
+                //var msg = {'username':obj.username, 'text':data.msg };    
                 var message = {'room':data.room, 'username':obj.username, 'text':data.msg, 'date':new Date()};
                 // Send message to room
                 io.sockets.in(data.room).emit('newMessage', message);

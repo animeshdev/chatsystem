@@ -75,15 +75,13 @@ p {
     
 
   <div id='tabHeader' class="tabs">
-      
+      <chattabhead val="Main" selected="selected"></chattabhead>
   </div>
    <div id='tab_content'>
-      
-     <!--  <div ng-show="selected == 'first'" class="tab_content">
-        <p>ani</p>
-      </div> -->
-
+     <chattab val="Main" selected="selected"></chattab>
    </div>
+    
+   
     
 
   <div class="clr">
@@ -100,6 +98,32 @@ p {
 <script src='/lib/underscore/underscore-min.js'></script>
 <script src='/lib/socket/socket.io.js'></script>
 <script>
+
+function appendMessage(data){
+
+    var msg = '<li>' + data.username + ':' + data.text + '</li>';
+
+    angular.element(document.getElementById( data.room + '_message' ) ).append(msg);
+}
+
+function appendUsers(data){
+
+  msg = '';
+
+  _.each( data.users , function(user){
+
+      msg += '<li>' + user.username + '</li>';
+
+  });
+
+  //console.log(msg);
+
+  angular.element(document.getElementById( data.room + '_users' ) ).html(msg);
+
+}
+
+
+
 angular.module('myApps', ['ngResource','ngRoute'])
 
 .directive('chattab', function(socket) {
@@ -110,18 +134,41 @@ angular.module('myApps', ['ngResource','ngRoute'])
     templateUrl: 'template/tab.html',
     link:function(scope,element,attrs){
 
-        console.log( scope.val );
+        //console.log( socket );
+
+        function closeThisElement(){
+            element.remove();
+        }
+
+        scope.closeThisElement = closeThisElement;
 
     },
     controller:function($scope,socket){
 
-        $scope.message = ['hello'];
-        $scope.sendMessage = function(){
+        $scope.message = '';
 
-          console.log( socket );
-          socket.emit('newMessage',{ room:  $scope.val, msg:'test' });
+        
+
+        $scope.unsubscribe = function(){
+
+            socket.emit('unsubscribe',{ rooms:  [$scope.val] });
+
+            $scope.closeThisElement();
+            
           
         };
+
+
+        $scope.sendMessage = function(){
+
+          console.log( $scope.message );
+          socket.emit('newMessage',{ room:  $scope.val, msg : $scope.message });
+
+          $scope.message = '';
+          
+        };
+
+
     }
   };
 })
@@ -137,53 +184,32 @@ angular.module('myApps', ['ngResource','ngRoute'])
 
     }
 
-    // },
-    // controller:function($scope){
-
-    //     $scope.message = ['hello'];
-    //     this.sendMessage = function(){
-
-    //       alert('hi');
-    //     };
-    // }
+   
   };
 })
 
 .controller('AppCtrl', function ($scope, $compile,socket) { 
 
 
-$scope.selected = 'MainRoom';
-  $scope.rooms = ['MainRoom','Test','Test3'];
+$scope.selected = 'Main';
+  $scope.rooms = ['Sports','Social'];
 
   $scope.chatRooms = '';
 
   $scope.roomTabs=[];
 
-  $scope.$watch('selected', function(val) {
-
-      console.log( val );
-
-  });  
+ 
 
   $scope.$watch('chatRooms', function(val) {
   
-    //console.log(val);
 
     if(val){
 
       if( !_.contains($scope.roomTabs,val) ){
 
           $scope.roomTabs.push( val );
-          //console.log(  val );
-
-
-          //tab = '<p>xxx</p>';
-          //var tab = $compile('<chattab val="x"></chattab>');
-
-          // "' + $scope.selected+ '"
+         
           var tab =$compile( '<chattab val="' + val + '" selected="selected"></chattab>')($scope) ;
-
-          //console.log( '<chattab val="' + val + '" selected="{{selected}}"></chattab>' );  
 
           angular.element(document.getElementById('tab_content')).append(tab);
 
@@ -191,50 +217,68 @@ $scope.selected = 'MainRoom';
                         '" selected="selected"></chattabhead>')($scope);
           angular.element(document.getElementById('tabHeader')).append(tabhead);
 
+          socket.emit('subscribe', {
+            rooms: [val]
+          });
+
+          socket.emit('getUsersInRoom', {
+            room: val
+          });
+
       } 
 
     }
     
 
-
-
   });
 
-  // socket.on('init', function (data) {
-  //   $scope.name = data.name;
-  //   $scope.users = data.users;
-  // });
+
 
   socket.on('connected', function (message) {
-   $scope.messages.push(message);
+   //$scope.messages.push(message);
+
+   var msg = message.username + ':' + message.text ;
+
+    angular.element(document.getElementById('Main_message')).append(msg);
 
    socket.emit('getUsersInRoom', {
-      room: 'MainRoom'
+      room: 'Main'
     });
+
+
 
   });
 
   socket.on('usersInRoom', function (data) {
 
-    
-
-    $scope.users = data.users;
+    appendUsers(data);
 
   });
 
 
    socket.on('userJoinsRoom', function (data) {
 
-    $scope.username = data.username;
-
-   $scope.messages.push(data.msg);
-  
+    appendMessage(data);
 
   });
+
+
+  socket.on('userLeavesRoom', function (data) {
+
+    appendMessage(data);
+
+    socket.emit('getUsersInRoom', {
+      room: data.room
+    });
+
+  });
+
+
+
  
   socket.on('newMessage', function (message) {
 
-    $scope.messages.push(message);
+    appendMessage(message);
 
 
   });
@@ -247,13 +291,7 @@ $scope.selected = 'MainRoom';
         $scope.newName = '';
   });
 
-  socket.on('user:join', function (data) {
-    $scope.messages.push({
-      username: 'chatroom',
-      text: 'User ' + data.name + ' has joined.'
-    });
-    $scope.users.push(data.name);
-  });
+  
 
   // add a message to the conversation when a user disconnects or leaves the room
   socket.on('userLeavesRoom', function (data) {

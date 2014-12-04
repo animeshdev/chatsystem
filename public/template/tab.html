@@ -1,20 +1,29 @@
-<div ng-show="selected == &#39;{{val}}&#39;" class="tab_content">
+<div id='{{val}}_tabd' ng-show="selected == &#39;{{val}}&#39;" class="tab_content">
 
           <div>{{val}} Room</div>
+          <button ng-click='unsubscribe(val)'>Unsubscribe</button>
           <div class="col"><h3>Messages</h3>
-            <div class="overflow">
-              <p ng-repeat='message in messages'>{{message.username}}: {{message.text}}</p>
+            <div id='{{val}}_message' class="overflow">
+              <!-- <p ng-repeat='message in messages'>{{message.username}}: {{message.text}}</p> -->
             </div>
           </div>
 
           <div class="col"><h3>Users</h3>
-            <div class="overflow">
-              <p ng-repeat='user in users'>{{user.username}}</p>
-            </div>
+            <ul id='{{val}}_users' class="overflow">
+              <!-- <p ng-repeat='user in users'>{{user.username}}</p> -->
+            </ul>
           </div>
 
           <div class="clr">
-            <button ng-click='sendMessage()'>Send</button>
+            <!-- <input type="text" ng-model='message'>
+            <button ng-click='sendMessage()'>Send</button> -->
+
+            <form ng-submit='sendMessage()'>
+                  <label for="">Message</label>
+                  <input size='60', ng-model='message'>
+                 <input type="submit" value='Send'>
+            </form>
+
             
           </div>
 </div>
